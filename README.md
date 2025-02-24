@@ -28,8 +28,8 @@ machine_learning/
 ## Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/machine_learning.git
-   cd machine_learning
+   git clone https://github.com/yourusername/ml_implementations.git
+   cd ml_implementations
    ```
 
 2. Install dependencies:
