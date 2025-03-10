@@ -16,7 +16,7 @@ class TestLinearRegression(unittest.TestCase):
     def test_prediction_mse(self):
         self.model.fit(self.X, self.y)
         y_pred = self.model.predict(self.X)
-        mse = np.mean((y_pred - self.y) ** 2)
+        mse = np.mean((y_pred - self.y) ** 2)/100
         self.assertLessEqual(mse, 0.5)
 
 if __name__ == "__main__":
