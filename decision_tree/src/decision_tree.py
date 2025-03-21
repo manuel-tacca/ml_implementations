@@ -2,35 +2,35 @@ import numpy as np
 
 class MyDecisionTreeClassifier:
 
-    def __init__(self, max_depth = 100):
+    def __init__(self, max_depth = 100, criterion = "entropy"):
         self.tree = []
         self.max_depth = max_depth
+        self.criterion = criterion
 
-    def compute_entropy(self, y):
+    def compute_impurity(self, y):
         """
-        Computes the entropy for 
+        Computes the impurity (entropy or gini) for 
         
         Args:
         y (ndarray): Numpy array indicating whether each example at a node is
-            edible (`1`) or poisonous (`0`)
+            belonging to a class
         
         Returns:
-            entropy (float): Entropy at that node
+            impurity (float): Entropy at that node
             
         """
-        entropy = 0.
-        
-        if len(y) != 0:
-            p1 = np.count_nonzero(y==1) / len(y)
+        if len(y) == 0:
+            return 0.0
+
+        p = np.bincount(y) / len(y)
+        p = p[p > 0]
+
+        if self.criterion == "entropy":
+            return -np.sum(p * np.log2(p)) 
+        elif self.criterion == "gini":
+            return 1 - np.sum(p**2)
         else:
-            p1 = 0
-        
-        if p1 == 0 or p1 == 1:
-            entropy = 0.0
-        else:
-            entropy = -p1*np.log2(p1) - (1-p1)*np.log2(1-p1)
-                
-        return entropy
+            raise ValueError("Criterion must be 'entropy' or 'gini'")
 
     def split_dataset(self, X, node_indices, feature):
         """
@@ -113,10 +113,9 @@ class MyDecisionTreeClassifier:
         for feature_i in range(X.shape[1]):
             curr_ig = self.compute_information_gain(X, y, node_indices, feature_i)
             if curr_ig > best_ig:
-                best_ig = curr_ig
-                best_feature = feature_i
+                best_ig, best_feature = curr_ig, feature_i
                     
-        return best_feature
+        return best_feature if best_ig > 0 else None
     
     def check_purity(self, y, node_indeces):
         p = y[node_indeces]
@@ -138,35 +137,38 @@ class MyDecisionTreeClassifier:
 
         # Maximum depth reached - stop splitting
         if current_depth == self.max_depth:
-            return
+            return np.bincount(y[node_indices]).argmax()
         
         # Pure node - stop splitting
         if self.check_purity(y, node_indices):
-            return
+            return np.bincount(y[node_indices]).argmax()
     
         # Otherwise, get best split and split the data
         # Get the best feature and threshold at this node
         best_feature = self.get_best_split(X, y, node_indices)
+        if best_feature is None:
+            return np.bincount(y[node_indices]).argmax() # Leaf node
         
         # Split the dataset at the best feature
         left_indices, right_indices = self.split_dataset(X, node_indices, best_feature)
-        self.tree.append((left_indices, right_indices, best_feature))
-        
-        # continue splitting the left and the right child. Increment current depth
-        self.build_tree(X, y, left_indices, self.max_depth, current_depth+1)
-        self.build_tree(X, y, right_indices, self.max_depth, current_depth+1)
-
-    # def one_hot_encode(self, X, y):
-    #     # for each feature I need every single example's value
-    #     for feature_i in range(X.shape[1]):
-    #         curr_values = X[:, feature_i]
-    #         code = np.unique(curr_values)
-    #         ...
+        return {
+            "feature": best_feature,
+            "left": self.build_tree(X, y, left_indices, current_depth + 1),
+            "right": self.build_tree(X, y, right_indices, current_depth + 1)
+        }
 
     def fit(self, X, y):
+        root_indices = np.arange(X.shape[0])
+        self.tree = self.build_tree(X, y, root_indices, self.max_depth, 0)
+        
+    def predict_sample(self, tree, x):
+        """Predict a single sample using the tree."""
+        if isinstance(tree, dict):
+            feature = tree["feature"]
+            branch = "left" if x[feature] == 1 else "right"
+            return self.predict_sample(tree[branch], x)
+        return tree 
 
-        # self.one_hot_encode(X, y)
-
-        root_indices = np.array(range(X.shape[1]))
-        self.build_tree(X, y, root_indices, self.max_depth, 0)
-        print(self.tree)
+    def predict(self, X):
+        """Predict multiple samples."""
+        return np.array([self.predict_sample(self.tree, x) for x in X])
