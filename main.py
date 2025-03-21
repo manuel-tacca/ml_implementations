@@ -7,8 +7,8 @@ if __name__ == "__main__":
     tests = [
         "logistic_regression.test.test_logistic_regression",
         "linear_regression.test.test_linear_regression",
-        "neural_network.test.test_neural_network",
-        "neural_network.test.test_neural_network_multi"
+        "neural_network.test.test_neural_network_multi",
+        "decision_tree.test.test_decision_tree"
     ]
     
     for test in tests:
